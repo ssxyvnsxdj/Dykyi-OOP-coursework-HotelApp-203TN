@@ -14,10 +14,9 @@
             <TextBlock Text="ПІБ бронювальника:" Margin="10"/>
             <TextBox Name="GuestName" Margin="10"/>
             <TextBlock Text="Дата заселення:" Margin="10"/>
-            <DatePicker Name="CheckInDatePicker" Margin="10"/>
+            <DatePicker Name="CheckInDatePicker" Margin="10" SelectedDateChanged="CheckInDatePicker_SelectedDateChanged"/>
             <TextBlock Text="Дата виселення:" Margin="10"/>
-            <DatePicker Name="CheckOutDatePicker" Margin="10"/>
-            <TextBlock Text="Ціна:" Margin="10"/>
+            <DatePicker Name="CheckOutDatePicker" Margin="10" SelectedDateChanged="CheckOutDatePicker_SelectedDateChanged"/>
             <TextBlock Name="PriceTextBlock" Margin="10"/>
             <Button Content="Зберегти" Margin="10" Click="Save_Click"/>
             <Button Content="Відміна" Margin="10" Click="Cancel_Click"/>
@@ -25,13 +24,13 @@
 
         <StackPanel Grid.Column="1" Margin="10">
             <TextBlock Text="Список бронювань" FontSize="20" Margin="10"/>
-            <ListView Name="ReservationsList" Margin="10">
+            <ListView Name="ReservationsList" Margin="10" SelectionChanged="ReservationsList_SelectionChanged">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding GuestName}" Width="100"/>
-                            <TextBlock Text="{Binding CheckInDate}" Width="100"/>
-                            <TextBlock Text="{Binding CheckOutDate}" Width="100"/>
+                            <TextBlock Text="{Binding GuestName}" Width="250"/>
+                            <TextBlock Text="{Binding CheckInDate, StringFormat='dd.MM.yyyy HH:mm'}" Width="150"/>
+                            <TextBlock Text="{Binding CheckOutDate, StringFormat='dd.MM.yyyy HH:mm'}" Width="150"/>
                             <Button Content="Видалити" Click="DeleteReservation_Click"/>
                         </StackPanel>
                     </DataTemplate>

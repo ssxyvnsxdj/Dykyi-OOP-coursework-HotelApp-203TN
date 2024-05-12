@@ -1,16 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
-using System.IO;
-using Newtonsoft.Json;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
+using System.Linq; // Додано простір імен для LINQ
 using System.Windows.Data;
 using System.Windows.Media;
-
+using Newtonsoft.Json;
 
 namespace HotelApp
 {
@@ -27,7 +23,7 @@ namespace HotelApp
         public RoomType Type { get; set; }
         public bool IsOccupied { get; set; }
 
-        // Свойство, которое возвращает текст для отображения
+        // Властивість, яка повертає текст для відображення
         public string DisplayText
         {
             get
@@ -52,6 +48,7 @@ namespace HotelApp
             }
         }
     }
+
     public class Reservation
     {
         public string GuestName { get; set; }
@@ -59,7 +56,7 @@ namespace HotelApp
         public DateTime CheckOutDate { get; set; }
         public Room Room { get; set; }
 
-        // Check if the reservation is active on a specific date
+        // Перевірка, чи активне бронювання на конкретну дату
         public bool IsActiveOn(DateTime date)
         {
             return CheckInDate <= date && CheckOutDate > date;
@@ -82,6 +79,7 @@ namespace HotelApp
             throw new NotImplementedException();
         }
     }
+
     public class Hotel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
@@ -114,12 +112,21 @@ namespace HotelApp
 
         private void InitializeRooms()
         {
-            for (int i = 1; i <= 40; i++)
-                Rooms.Add(new Room { Number = i, Type = RoomType.Standard, IsOccupied = false });
-            for (int i = 41; i <= 50; i++)
-                Rooms.Add(new Room { Number = i, Type = RoomType.JuniorSuite, IsOccupied = false });
-            for (int i = 51; i <= 60; i++)
-                Rooms.Add(new Room { Number = i, Type = RoomType.Suite, IsOccupied = false });
+            if (Rooms.Count == 0)
+            {
+                for (int i = 1; i <= 40; i++)
+                    Rooms.Add(new Room { Number = i, Type = RoomType.Standard, IsOccupied = false });
+                for (int i = 41; i <= 50; i++)
+                    Rooms.Add(new Room { Number = i, Type = RoomType.JuniorSuite, IsOccupied = false });
+                for (int i = 51; i <= 60; i++)
+                    Rooms.Add(new Room { Number = i, Type = RoomType.Suite, IsOccupied = false });
+            }
+        }
+
+        public void ClearAll()
+        {
+            Rooms.Clear();
+            Reservations.Clear();
         }
 
         public void AdvanceTime(TimeSpan duration)
@@ -140,16 +147,41 @@ namespace HotelApp
                 Reservations = this.Reservations,
                 CurrentTime = this.CurrentTime
             };
-            string json = JsonConvert.SerializeObject(data, Newtonsoft.Json.Formatting.Indented);
+            string json = JsonConvert.SerializeObject(data, Formatting.Indented);
             File.WriteAllText(filePath, json);
         }
 
         public static Hotel LoadData(string filePath)
         {
             if (!File.Exists(filePath)) return new Hotel();
-            string json = File.ReadAllText(filePath);
-            var data = JsonConvert.DeserializeObject<Hotel>(json);
-            return data ?? new Hotel();
+            try
+            {
+                string json = File.ReadAllText(filePath);
+                dynamic data = JsonConvert.DeserializeObject<dynamic>(json);
+
+                var hotel = new Hotel
+                {
+                    Rooms = JsonConvert.DeserializeObject<List<Room>>(data.Rooms.ToString()),
+                    Reservations = JsonConvert.DeserializeObject<List<Reservation>>(data.Reservations.ToString()),
+                    _currentTime = DateTime.Parse(data.CurrentTime.ToString())
+                };
+
+                // Відновимо посилання на номер у кожному бронюванні
+                foreach (var reservation in hotel.Reservations)
+                {
+                    var room = hotel.Rooms.FirstOrDefault(r => r.Number == reservation.Room.Number);
+                    if (room != null)
+                    {
+                        reservation.Room = room;
+                    }
+                }
+
+                return hotel ?? new Hotel();
+            }
+            catch
+            {
+                return new Hotel(); // Якщо дані некоректні, повертаємо новий готель
+            }
         }
     }
 }
