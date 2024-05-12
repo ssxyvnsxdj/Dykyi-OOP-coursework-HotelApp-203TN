@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq; // Додано простір імен для LINQ
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 using Newtonsoft.Json;
@@ -32,13 +33,13 @@ namespace HotelApp
                 switch (Type)
                 {
                     case RoomType.Standard:
-                        suffix = "С";
+                        suffix = "С"; // Стандарт
                         break;
                     case RoomType.JuniorSuite:
-                        suffix = "Л";
+                        suffix = "Л"; // Полулюкс
                         break;
                     case RoomType.Suite:
-                        suffix = "Л+";
+                        suffix = "Л+"; // Люкс
                         break;
                     default:
                         suffix = "";
@@ -110,6 +111,7 @@ namespace HotelApp
             InitializeRooms();
         }
 
+        // Ініціалізація номерів готелю
         private void InitializeRooms()
         {
             if (Rooms.Count == 0)
@@ -123,37 +125,53 @@ namespace HotelApp
             }
         }
 
+        // Очищення всіх даних готелю
         public void ClearAll()
         {
             Rooms.Clear();
             Reservations.Clear();
         }
 
+        // Переміщення часу вперед
         public void AdvanceTime(TimeSpan duration)
         {
             CurrentTime = CurrentTime.Add(duration);
         }
 
+        // Виклик події зміни властивості
         protected void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
+        // Збереження даних готелю у файл
         public void SaveData(string filePath)
         {
-            var data = new
+            try
             {
-                Rooms = this.Rooms,
-                Reservations = this.Reservations,
-                CurrentTime = this.CurrentTime
-            };
-            string json = JsonConvert.SerializeObject(data, Formatting.Indented);
-            File.WriteAllText(filePath, json);
+                var data = new
+                {
+                    Rooms = this.Rooms,
+                    Reservations = this.Reservations,
+                    CurrentTime = this.CurrentTime
+                };
+                string json = JsonConvert.SerializeObject(data, Formatting.Indented);
+                File.WriteAllText(filePath, json);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessageBox($"Помилка при збереженні даних: {ex.Message}");
+            }
         }
 
+        // Завантаження даних готелю з файлу
         public static Hotel LoadData(string filePath)
         {
-            if (!File.Exists(filePath)) return new Hotel();
+            if (!File.Exists(filePath))
+            {
+                ErrorMessageBox("Файл з даними не знайдено. Буде створено новий готель.");
+                return new Hotel();
+            }
             try
             {
                 string json = File.ReadAllText(filePath);
@@ -166,7 +184,7 @@ namespace HotelApp
                     _currentTime = DateTime.Parse(data.CurrentTime.ToString())
                 };
 
-                // Відновимо посилання на номер у кожному бронюванні
+                // Відновлення посилання на кімнату в кожному бронюванні
                 foreach (var reservation in hotel.Reservations)
                 {
                     var room = hotel.Rooms.FirstOrDefault(r => r.Number == reservation.Room.Number);
@@ -174,14 +192,25 @@ namespace HotelApp
                     {
                         reservation.Room = room;
                     }
+                    else
+                    {
+                        ErrorMessageBox("Неправильні дані бронювання. Деякі бронювання містять помилки.");
+                    }
                 }
 
-                return hotel ?? new Hotel();
+                return hotel;
             }
-            catch
+            catch (Exception ex)
             {
+                ErrorMessageBox($"Помилка при завантаженні даних: {ex.Message}");
                 return new Hotel(); // Якщо дані некоректні, повертаємо новий готель
             }
+        }
+
+        // Метод для виведення повідомлень про помилки
+        private static void ErrorMessageBox(string message)
+        {
+            MessageBox.Show(message, "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }
